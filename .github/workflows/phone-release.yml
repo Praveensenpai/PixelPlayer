@@ -2,14 +2,14 @@ name: Build Phone APK (Release)
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, fix/stuck-processing-notification ]
   pull_request:
     types: [opened, synchronize, reopened]
     branches: [ master ]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-phone:
@@ -74,3 +74,29 @@ jobs:
             app/build/outputs/apk/release/app-armeabi-v7a-release.apk
           if-no-files-found: error
           compression-level: 0
+
+      - name: Create or update GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          TAG_NAME="v0.7.5-fix-notification"
+          gh release create "$TAG_NAME" \
+            app/build/outputs/apk/release/app-arm64-v8a-release.apk \
+            app/build/outputs/apk/release/app-armeabi-v7a-release.apk \
+            --title "PixelPlay v0.7.5 (Notification Fix)" \
+            --notes "### Fix Orphaned 'Processing playback action' Notification
+
+This release fixes [Issue #2522](https://github.com/PixelPlayerHQ/PixelPlayer/issues/2522) with the changes from [PR #2936](https://github.com/PixelPlayerHQ/PixelPlayer/pull/2936).
+
+#### Problem:
+On Android 14+ (including Pixel 7/8/9 devices and Android 17), an orphaned **\"Processing playback action…\"** foreground notification remains permanently stuck in the status drawer even after playback paused or stopped.
+
+#### Fix:
+Syncs the foreground notification ID (\`MusicService.NOTIFICATION_ID = 101\`) with \`LocalOnlyMediaNotificationProvider\` so that Media3 replaces and clears the temporary service notification cleanly.
+
+#### Downloads:
+- **[app-arm64-v8a-release.apk](https://github.com/Praveensenpai/PixelPlayer/releases/download/v0.7.5-fix-notification/app-arm64-v8a-release.apk)** (Most modern phones: Pixel, Galaxy, OnePlus, Xiaomi)
+- **[app-armeabi-v7a-release.apk](https://github.com/Praveensenpai/PixelPlayer/releases/download/v0.7.5-fix-notification/app-armeabi-v7a-release.apk)** (32-bit ARM devices)
+
+_Signed with the open-source repository build key._" \
+            --clobber
